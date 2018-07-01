@@ -1,0 +1,10 @@
+SQLConnectionString = "tcp://localhost:10800/PollenDb?version=1.1.0&schema=PUBLIC"
+CacheName = "PollenDb"
+
+[ConnInfo]
+Network =  "tcp"
+Host =     "127.0.0.1"
+Port =     10800
+Major =    1
+Minor =    1
+Patch =    0
