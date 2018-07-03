@@ -13,3 +13,4 @@
 
 # Configuration files
 db.toml
+collector.toml
