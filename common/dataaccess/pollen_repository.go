@@ -41,7 +41,8 @@ func GetConnection() (*PollenRepository, error) {
 
 // PollenRepository a repository for pollen
 type PollenRepository struct {
-	DB              *sql.DB
+	DB                 *sql.DB
+	PreparedStatements map[string]*sql.Stmt
 }
 
 // PollenDate holds a pollencount for a given date
@@ -57,6 +58,18 @@ func (repo *PollenRepository) InitDb() {
 			Date TIMESTAMP PRIMARY KEY, PollenCount INT, PredictedPollenCount FLOAT)`)
 	if err != nil {
 		log.Println(fmt.Errorf("failed to create table: %v", err))
+	}
+	repo.PreparedStatements = make(map[string]*sql.Stmt)
+	repo.prepareStatement("FetchPollen", "SELECT Date, PollenCount, PredictedPollenCount FROM PollenArchive WHERE Date = ?")
+	repo.prepareStatement("FetchPollenRange", "SELECT Date, PollenCount, PredictedPollenCount FROM PollenArchive WHERE Date >= ? AND Date <= ?")
+}
+
+func (repo *PollenRepository) prepareStatement(key string, statement string) {
+	query, err := repo.DB.Prepare(statement)
+	if err != nil {
+		log.Println(fmt.Errorf("failed prepare query: %v", err))
+	} else {
+		repo.PreparedStatements[key] = query
 	}
 }
 
