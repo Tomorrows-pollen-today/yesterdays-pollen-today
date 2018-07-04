@@ -52,6 +52,17 @@ type PollenDate struct {
 	Date                 time.Time
 }
 
+// Scanner is an interface implemented by both sql.Row and sql.Rows.
+type Scanner interface {
+	Scan(dest ...interface{}) error
+}
+
+func rowToPollenDate(row Scanner) (*PollenDate, error) {
+	pollenDate := &PollenDate{}
+	err := row.Scan(&pollenDate.Date, &pollenDate.PollenCount, &pollenDate.PredictedPollenCount)
+	return pollenDate, err
+}
+
 // InitDb Initializes database structure if it doesn't exist
 func (repo *PollenRepository) InitDb() {
 	_, err := repo.DB.Exec(`CREATE TABLE IF NOT EXISTS PollenArchive (
@@ -78,6 +89,35 @@ func (repo *PollenRepository) Close() {
 	repo.DB.Close()
 }
 
+}
+}
+
+// GetPollen fetch pollen data for a single date
+func (repo *PollenRepository) GetPollen(date time.Time) (*PollenDate, error) {
+	row := repo.PreparedStatements["FetchPollen"].QueryRow(date)
+	return rowToPollenDate(row)
+}
+
+// GetPollenFromRange fetch pollen data for a range of dates
+func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time) ([]*PollenDate, error) {
+	var results []*PollenDate
+	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to)
+	defer rows.Close()
+	if err != nil {
+		log.Println(fmt.Errorf("failed to get data: %v", err))
+	}
+	for rows.Next() {
+		pollenDate, err := rowToPollenDate(rows)
+		if err != nil {
+			log.Println(fmt.Errorf("failed to get data: %v", err))
+		}
+		results = append(results, pollenDate)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Println(fmt.Errorf("failed to get data: %v", err))
+	}
+	return results, err
 }
 
 // TimestampToDate converts a timestamp to a date used in the repository
