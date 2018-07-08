@@ -89,7 +89,39 @@ func (repo *PollenRepository) Close() {
 	repo.DB.Close()
 }
 
+// UpsertPredictedPollenCount insert/updates the actual pollen count for a date
+func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenDate) error {
+	existing, err := repo.GetPollen(pollen.Date)
+	if err != nil {
+		existing = &PollenDate{}
+	}
+	_, err = repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) VALUES (?, ?, ?)", pollen.Date, existing.PollenCount, pollen.PredictedPollenCount)
+	if err != nil {
+		log.Println(fmt.Errorf("failed insert data: %v", err))
+	}
+	return err
 }
+
+// UpsertPollenCount insert/updates the actual pollen count for a date
+func (repo *PollenRepository) UpsertPollenCount(pollen *PollenDate) error {
+	existing, err := repo.GetPollen(pollen.Date)
+	if err != nil {
+		existing = &PollenDate{}
+	}
+	_, err = repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) VALUES (?, ?, ?)", pollen.Date, pollen.PollenCount, existing.PredictedPollenCount)
+	if err != nil {
+		log.Println(fmt.Errorf("failed insert data: %v", err))
+	}
+	return err
+}
+
+// UpsertPollenDate insert/updates the actual pollen count and predicted pollen count for a date
+func (repo *PollenRepository) UpsertPollenDate(pollen *PollenDate) error {
+	_, err := repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) (SELECT ?, ?, ?)", pollen.Date, pollen.PollenCount, pollen.PredictedPollenCount)
+	if err != nil {
+		log.Println(fmt.Errorf("failed insert data: %v", err))
+	}
+	return err
 }
 
 // GetPollen fetch pollen data for a single date
