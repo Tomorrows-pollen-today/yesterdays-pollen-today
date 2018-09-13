@@ -10,6 +10,8 @@ import (
 type CollectorConfig struct {
 	PredictionAPIEndpoint string
 	PredictionAPIKey      string
+	HistoricalAPIEndpoint string
+	HistoricalAPIKey      string
 }
 
 func getConfig() *CollectorConfig {
