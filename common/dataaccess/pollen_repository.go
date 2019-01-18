@@ -45,8 +45,8 @@ type PollenRepository struct {
 	PreparedStatements map[string]*sql.Stmt
 }
 
-// PollenDate holds a pollencount for a given date
-type PollenDate struct {
+// PollenSample holds a pollencount for a given date
+type PollenSample struct {
 	PollenCount          *int32
 	PredictedPollenCount *float32
 	Date                 time.Time
@@ -57,10 +57,10 @@ type Scanner interface {
 	Scan(dest ...interface{}) error
 }
 
-func rowToPollenDate(row Scanner) (*PollenDate, error) {
-	pollenDate := &PollenDate{}
-	err := row.Scan(&pollenDate.Date, &pollenDate.PollenCount, &pollenDate.PredictedPollenCount)
-	return pollenDate, err
+func rowToPollenSample(row Scanner) (*PollenSample, error) {
+	pollenSample := &PollenSample{}
+	err := row.Scan(&pollenSample.Date, &pollenSample.PollenCount, &pollenSample.PredictedPollenCount)
+	return pollenSample, err
 }
 
 // InitDb Initializes database structure if it doesn't exist
@@ -90,10 +90,10 @@ func (repo *PollenRepository) Close() {
 }
 
 // UpsertPredictedPollenCount insert/updates the actual pollen count for a date
-func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenDate) error {
+func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenSample) error {
 	existing, err := repo.GetPollen(pollen.Date)
 	if err != nil {
-		existing = &PollenDate{}
+		existing = &PollenSample{}
 	}
 	_, err = repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) VALUES (?, ?, ?)", pollen.Date, existing.PollenCount, pollen.PredictedPollenCount)
 	if err != nil {
@@ -103,10 +103,10 @@ func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenDate) err
 }
 
 // UpsertPollenCount insert/updates the actual pollen count for a date
-func (repo *PollenRepository) UpsertPollenCount(pollen *PollenDate) error {
+func (repo *PollenRepository) UpsertPollenCount(pollen *PollenSample) error {
 	existing, err := repo.GetPollen(pollen.Date)
 	if err != nil {
-		existing = &PollenDate{}
+		existing = &PollenSample{}
 	}
 	_, err = repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) VALUES (?, ?, ?)", pollen.Date, pollen.PollenCount, existing.PredictedPollenCount)
 	if err != nil {
@@ -115,8 +115,8 @@ func (repo *PollenRepository) UpsertPollenCount(pollen *PollenDate) error {
 	return err
 }
 
-// UpsertPollenDate insert/updates the actual pollen count and predicted pollen count for a date
-func (repo *PollenRepository) UpsertPollenDate(pollen *PollenDate) error {
+// UpsertPollenSample insert/updates the actual pollen count and predicted pollen count for a date
+func (repo *PollenRepository) UpsertPollenSample(pollen *PollenSample) error {
 	_, err := repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) (SELECT ?, ?, ?)", pollen.Date, pollen.PollenCount, pollen.PredictedPollenCount)
 	if err != nil {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
@@ -125,25 +125,25 @@ func (repo *PollenRepository) UpsertPollenDate(pollen *PollenDate) error {
 }
 
 // GetPollen fetch pollen data for a single date
-func (repo *PollenRepository) GetPollen(date time.Time) (*PollenDate, error) {
+func (repo *PollenRepository) GetPollen(date time.Time) (*PollenSample, error) {
 	row := repo.PreparedStatements["FetchPollen"].QueryRow(date)
-	return rowToPollenDate(row)
+	return rowToPollenSample(row)
 }
 
 // GetPollenFromRange fetch pollen data for a range of dates
-func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time) ([]*PollenDate, error) {
-	var results []*PollenDate
+func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time) ([]*PollenSample, error) {
+	var results []*PollenSample
 	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to)
 	defer rows.Close()
 	if err != nil {
 		log.Println(fmt.Errorf("failed to get data: %v", err))
 	}
 	for rows.Next() {
-		pollenDate, err := rowToPollenDate(rows)
+		pollenSample, err := rowToPollenSample(rows)
 		if err != nil {
 			log.Println(fmt.Errorf("failed to get data: %v", err))
 		}
-		results = append(results, pollenDate)
+		results = append(results, pollenSample)
 	}
 	err = rows.Err()
 	if err != nil {

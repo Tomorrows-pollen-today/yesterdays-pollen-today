@@ -11,8 +11,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// PollenDateDto holds a pollencount for a given date
-type PollenDateDto struct {
+// PollenSampleDto holds a pollencount for a given date
+type PollenSampleDto struct {
 	PollenCount          int       `json:"pollencount"`
 	PredictedPollenCount int       `json:"predictedpollencount"`
 	Date                 time.Time `json:"date"`
