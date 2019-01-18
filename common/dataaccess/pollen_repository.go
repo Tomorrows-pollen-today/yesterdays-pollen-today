@@ -47,8 +47,8 @@ type PollenRepository struct {
 
 // PollenSample holds a pollencount for a given date
 type PollenSample struct {
-	PollenCount          *int32
-	PredictedPollenCount *float32
+	PollenCount          int32
+	PredictedPollenCount float32
 	Date                 time.Time
 }
 
