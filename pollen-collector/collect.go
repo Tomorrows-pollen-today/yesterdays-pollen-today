@@ -69,7 +69,7 @@ func main() {
 		dateForInsert = dateForInsert.AddDate(0, 0, 1)
 
 		data := &dataaccess.PollenSample{
-			PredictedPollenCount: &tomorrowsPollen,
+			PredictedPollenCount: tomorrowsPollen,
 			Date:                 dateForInsert,
 		}
 		log.Println(data)
@@ -88,7 +88,7 @@ func main() {
 		dateForInsert := dataaccess.TimestampToDate(time.Now())
 
 		data := &dataaccess.PollenSample{
-			PollenCount: &todaysPollen,
+			PollenCount: todaysPollen,
 			Date:        dateForInsert,
 		}
 		log.Println(data)
@@ -249,8 +249,8 @@ func getHistoricalPollen() ([]*dataaccess.PollenSample, error) {
 		var predictedPollenCount = float32(historicalPredictedPollenValue)
 		var pollenSample = &dataaccess.PollenSample{
 			Date:                 dataaccess.TimestampToDate(date),
-			PollenCount:          &pollenCount,
-			PredictedPollenCount: &predictedPollenCount,
+			PollenCount:          pollenCount,
+			PredictedPollenCount: predictedPollenCount,
 		}
 		result = append(result, pollenSample)
 	}
