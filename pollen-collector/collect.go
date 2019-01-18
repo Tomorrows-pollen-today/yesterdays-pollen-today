@@ -47,9 +47,9 @@ func main() {
 			return
 		}
 		var count = len(historicalPollen)
-		log.Printf("Found %v historical pollendates", count)
+		log.Printf("Found %v historical pollenSamples", count)
 		for index := 0; index < count; index++ {
-			pollenRepo.UpsertPollenDate(historicalPollen[index])
+			pollenRepo.UpsertPollenSample(historicalPollen[index])
 		}
 		return
 	}
@@ -68,7 +68,7 @@ func main() {
 		dateForInsert := dataaccess.TimestampToDate(time.Now())
 		dateForInsert = dateForInsert.AddDate(0, 0, 1)
 
-		data := &dataaccess.PollenDate{
+		data := &dataaccess.PollenSample{
 			PredictedPollenCount: &tomorrowsPollen,
 			Date:                 dateForInsert,
 		}
@@ -87,7 +87,7 @@ func main() {
 
 		dateForInsert := dataaccess.TimestampToDate(time.Now())
 
-		data := &dataaccess.PollenDate{
+		data := &dataaccess.PollenSample{
 			PollenCount: &todaysPollen,
 			Date:        dateForInsert,
 		}
@@ -197,7 +197,7 @@ type azureHistoricalPollenResponse struct {
 	} `json:"Results"`
 }
 
-func getHistoricalPollen() ([]*dataaccess.PollenDate, error) {
+func getHistoricalPollen() ([]*dataaccess.PollenSample, error) {
 	client := &http.Client{}
 	postBody, err := json.Marshal(map[string]interface{}{"GlobalParameters": map[string]string{}})
 	if err != nil {
@@ -226,7 +226,7 @@ func getHistoricalPollen() ([]*dataaccess.PollenDate, error) {
 		log.Println(err, historicalPollenResponse, string(data))
 		return nil, err
 	}
-	var result []*dataaccess.PollenDate
+	var result []*dataaccess.PollenSample
 	var count = len(historicalPollen.Results.HistoricalPollenCount.Value.Values)
 	for index := 0; index < count; index++ {
 		var currentResult = historicalPollen.Results.HistoricalPollenCount.Value.Values[index]
@@ -247,12 +247,12 @@ func getHistoricalPollen() ([]*dataaccess.PollenDate, error) {
 		}
 		var pollenCount = int32(historicalPollenValue)
 		var predictedPollenCount = float32(historicalPredictedPollenValue)
-		var pollenDate = &dataaccess.PollenDate{
+		var pollenSample = &dataaccess.PollenSample{
 			Date:                 dataaccess.TimestampToDate(date),
 			PollenCount:          &pollenCount,
 			PredictedPollenCount: &predictedPollenCount,
 		}
-		result = append(result, pollenDate)
+		result = append(result, pollenSample)
 	}
 	return result, nil
 
