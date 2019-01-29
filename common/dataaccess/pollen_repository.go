@@ -89,7 +89,13 @@ type Scanner interface {
 
 func rowToPollenSample(row Scanner) (*PollenSample, error) {
 	pollenSample := &PollenSample{}
-	err := row.Scan(&pollenSample.Date, &pollenSample.PollenCount, &pollenSample.PredictedPollenCount)
+	err := row.Scan(&pollenSample.Date,
+		&pollenSample.PollenType,
+		&pollenSample.Location.Location,
+		&pollenSample.Location.Country,
+		&pollenSample.Location.City,
+		&pollenSample.PollenCount,
+		&pollenSample.PredictedPollenCount)
 	return pollenSample, err
 }
 
@@ -125,9 +131,39 @@ func (repo *PollenRepository) InitDb() {
 	if err != nil {
 		panic(fmt.Errorf("Failed to create index on Locations: %v", err))
 	}
+
 	repo.PreparedStatements = make(map[string]*sql.Stmt)
-	repo.prepareStatement("FetchPollen", "SELECT Date, PollenCount, PredictedPollenCount FROM PollenArchive WHERE Date = ?")
-	repo.prepareStatement("FetchPollenRange", "SELECT Date, PollenCount, PredictedPollenCount FROM PollenArchive WHERE Date >= ? AND Date <= ?")
+	repo.prepareStatement("FetchPollen", `
+		SELECT 
+			Date,
+			PollenType,
+			Locations.Location,
+			Locations.Country,
+			Locations.City,
+			PollenCount, 
+			PredictedPollenCount 
+		FROM PollenArchive 
+		JOIN Locations on PollenArchive.Location = Locations.Location
+		WHERE 
+			Date = ? AND  
+			PollenType = ? AND 
+			PollenArchive.Location = ?`)
+	repo.prepareStatement("FetchPollenRange", `
+		SELECT 
+			Date,
+			PollenType,
+			Locations.Location,
+			Locations.Country,
+			Locations.City,
+			PollenCount, 
+			PredictedPollenCount 
+		FROM PollenArchive 
+		JOIN Locations on PollenArchive.Location = Locations.Location
+		WHERE 
+			Date >= ? AND 
+			Date <= ? AND 
+			PollenType = ? AND 
+			PollenArchive.Location = ?`)
 }
 
 func (repo *PollenRepository) prepareStatement(key string, statement string) {
@@ -146,7 +182,7 @@ func (repo *PollenRepository) Close() {
 
 // UpsertPredictedPollenCount insert/updates the actual pollen count for a date
 func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenSample) error {
-	existing, err := repo.GetPollen(pollen.Date)
+	existing, err := repo.GetPollen(pollen.Date, pollen.PollenType, pollen.Location.Location)
 	if err != nil {
 		existing = &PollenSample{}
 	}
@@ -159,7 +195,7 @@ func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenSample) e
 
 // UpsertPollenCount insert/updates the actual pollen count for a date
 func (repo *PollenRepository) UpsertPollenCount(pollen *PollenSample) error {
-	existing, err := repo.GetPollen(pollen.Date)
+	existing, err := repo.GetPollen(pollen.Date, pollen.PollenType, pollen.Location.Location)
 	if err != nil {
 		existing = &PollenSample{}
 	}
@@ -180,15 +216,15 @@ func (repo *PollenRepository) UpsertPollenSample(pollen *PollenSample) error {
 }
 
 // GetPollen fetch pollen data for a single date
-func (repo *PollenRepository) GetPollen(date time.Time) (*PollenSample, error) {
-	row := repo.PreparedStatements["FetchPollen"].QueryRow(date)
+func (repo *PollenRepository) GetPollen(date time.Time, pollenType PollenType, location int) (*PollenSample, error) {
+	row := repo.PreparedStatements["FetchPollen"].QueryRow(date, pollenType, location)
 	return rowToPollenSample(row)
 }
 
 // GetPollenFromRange fetch pollen data for a range of dates
-func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time) ([]*PollenSample, error) {
+func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time, pollenType PollenType, location int) ([]*PollenSample, error) {
 	var results []*PollenSample
-	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to)
+	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to, pollenType, location)
 	defer rows.Close()
 	if err != nil {
 		log.Println(fmt.Errorf("failed to get data: %v", err))
