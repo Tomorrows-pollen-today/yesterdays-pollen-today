@@ -186,7 +186,10 @@ func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenSample) e
 	if err != nil {
 		existing = &PollenSample{}
 	}
-	_, err = repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) VALUES (?, ?, ?)", pollen.Date, existing.PollenCount, pollen.PredictedPollenCount)
+	_, err = repo.DB.Exec(`
+		MERGE INTO PollenArchive (Date, PollenType, Location, PollenCount, PredictedPollenCount) 
+		VALUES (?, ?, ?, ?, ?)`,
+		pollen.Date, pollen.PollenType, pollen.Location.Location, existing.PollenCount, pollen.PredictedPollenCount)
 	if err != nil {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
 	}
@@ -199,7 +202,10 @@ func (repo *PollenRepository) UpsertPollenCount(pollen *PollenSample) error {
 	if err != nil {
 		existing = &PollenSample{}
 	}
-	_, err = repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) VALUES (?, ?, ?)", pollen.Date, pollen.PollenCount, existing.PredictedPollenCount)
+	_, err = repo.DB.Exec(`
+		MERGE INTO PollenArchive (Date, PollenType, Location, PollenCount, PredictedPollenCount) 
+		VALUES (?, ?, ?, ?, ?)`,
+		pollen.Date, pollen.PollenType, pollen.Location.Location, pollen.PollenCount, existing.PredictedPollenCount)
 	if err != nil {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
 	}
@@ -208,7 +214,10 @@ func (repo *PollenRepository) UpsertPollenCount(pollen *PollenSample) error {
 
 // UpsertPollenSample insert/updates the actual pollen count and predicted pollen count for a date
 func (repo *PollenRepository) UpsertPollenSample(pollen *PollenSample) error {
-	_, err := repo.DB.Exec("MERGE INTO PollenArchive (Date, PollenCount, PredictedPollenCount) (SELECT ?, ?, ?)", pollen.Date, pollen.PollenCount, pollen.PredictedPollenCount)
+	_, err := repo.DB.Exec(`
+		MERGE INTO PollenArchive (Date, PollenType, Location, PollenCount, PredictedPollenCount) 
+		(SELECT ?, ?, ?, ?, ?)`,
+		pollen.Date, pollen.PollenType, pollen.Location.Location, pollen.PollenCount, pollen.PredictedPollenCount)
 	if err != nil {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
 	}
