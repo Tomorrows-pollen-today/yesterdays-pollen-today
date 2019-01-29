@@ -100,12 +100,30 @@ func (repo *PollenRepository) InitDb() {
 		CREATE TABLE IF NOT EXISTS PollenArchive (
 			Date TIMESTAMP,
 			PollenType INT,
+			Location INT,
 			PollenCount INT, 
 			PredictedPollenCount FLOAT,
-			PRIMARY KEY (Date, PollenType)
+			PRIMARY KEY (Date, PollenType, Location)
 		)`)
 	if err != nil {
-		log.Println(fmt.Errorf("failed to create table: %v", err))
+		panic(fmt.Errorf("Failed to create PollenArchive: %v", err))
+	}
+	_, err = repo.DB.Exec(`
+		CREATE TABLE IF NOT EXISTS Locations (
+			Location INT PRIMARY KEY,
+			Country VARCHAR,
+			City VARCHAR
+		)`)
+	if err != nil {
+		panic(fmt.Errorf("Failed to create Locations: %v", err))
+	}
+	_, err = repo.DB.Exec(`
+		CREATE INDEX IF NOT EXISTS LocationLookup ON Locations (
+			Country ASC,
+			City ASC
+		)`)
+	if err != nil {
+		panic(fmt.Errorf("Failed to create index on Locations: %v", err))
 	}
 	repo.PreparedStatements = make(map[string]*sql.Stmt)
 	repo.prepareStatement("FetchPollen", "SELECT Date, PollenCount, PredictedPollenCount FROM PollenArchive WHERE Date = ?")
