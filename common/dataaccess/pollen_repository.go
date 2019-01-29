@@ -95,8 +95,15 @@ func rowToPollenSample(row Scanner) (*PollenSample, error) {
 
 // InitDb Initializes database structure if it doesn't exist
 func (repo *PollenRepository) InitDb() {
-	_, err := repo.DB.Exec(`CREATE TABLE IF NOT EXISTS PollenArchive (
-			Date TIMESTAMP PRIMARY KEY, PollenCount INT, PredictedPollenCount FLOAT)`)
+	var err error
+	_, err = repo.DB.Exec(`
+		CREATE TABLE IF NOT EXISTS PollenArchive (
+			Date TIMESTAMP,
+			PollenType INT,
+			PollenCount INT, 
+			PredictedPollenCount FLOAT,
+			PRIMARY KEY (Date, PollenType)
+		)`)
 	if err != nil {
 		log.Println(fmt.Errorf("failed to create table: %v", err))
 	}
