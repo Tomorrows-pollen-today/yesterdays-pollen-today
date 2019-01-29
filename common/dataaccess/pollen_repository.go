@@ -51,6 +51,7 @@ type PollenSample struct {
 	PollenType           PollenType
 	PredictedPollenCount float32
 	Date                 time.Time
+	Location             Location
 }
 
 // PollenType denotes a type of pollen
@@ -72,6 +73,13 @@ func (pollenType PollenType) String() string {
 	default:
 		return ""
 	}
+}
+
+// Location is a location where pollen is measured and predicted
+type Location struct {
+	Location int
+	City     string
+	Country  string
 }
 
 // Scanner is an interface implemented by both sql.Row and sql.Rows.
