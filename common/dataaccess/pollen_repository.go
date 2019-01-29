@@ -217,6 +217,34 @@ func (repo *PollenRepository) SearchLocation(country string, city string) (*Loca
 	return rowToLocation(row)
 }
 
+// GetPollen fetch pollen data for a single date
+func (repo *PollenRepository) GetPollen(date time.Time, pollenType PollenType, location int) (*PollenSample, error) {
+	row := repo.PreparedStatements["FetchPollen"].QueryRow(date, pollenType, location)
+	return rowToPollenSample(row)
+}
+
+// GetPollenFromRange fetch pollen data for a range of dates
+func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time, pollenType PollenType, location int) ([]*PollenSample, error) {
+	var results []*PollenSample
+	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to, pollenType, location)
+	defer rows.Close()
+	if err != nil {
+		log.Println(fmt.Errorf("failed to get data: %v", err))
+	}
+	for rows.Next() {
+		pollenSample, err := rowToPollenSample(rows)
+		if err != nil {
+			log.Println(fmt.Errorf("failed to get data: %v", err))
+		}
+		results = append(results, pollenSample)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Println(fmt.Errorf("failed to get data: %v", err))
+	}
+	return results, err
+}
+
 // UpsertPredictedPollenCount insert/updates the actual pollen count for a date
 func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenSample) error {
 	existing, err := repo.GetPollen(pollen.Date, pollen.PollenType, pollen.Location.Location)
@@ -259,34 +287,6 @@ func (repo *PollenRepository) UpsertPollenSample(pollen *PollenSample) error {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
 	}
 	return err
-}
-
-// GetPollen fetch pollen data for a single date
-func (repo *PollenRepository) GetPollen(date time.Time, pollenType PollenType, location int) (*PollenSample, error) {
-	row := repo.PreparedStatements["FetchPollen"].QueryRow(date, pollenType, location)
-	return rowToPollenSample(row)
-}
-
-// GetPollenFromRange fetch pollen data for a range of dates
-func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time, pollenType PollenType, location int) ([]*PollenSample, error) {
-	var results []*PollenSample
-	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to, pollenType, location)
-	defer rows.Close()
-	if err != nil {
-		log.Println(fmt.Errorf("failed to get data: %v", err))
-	}
-	for rows.Next() {
-		pollenSample, err := rowToPollenSample(rows)
-		if err != nil {
-			log.Println(fmt.Errorf("failed to get data: %v", err))
-		}
-		results = append(results, pollenSample)
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Println(fmt.Errorf("failed to get data: %v", err))
-	}
-	return results, err
 }
 
 // TimestampToDate converts a timestamp to a date used in the repository
