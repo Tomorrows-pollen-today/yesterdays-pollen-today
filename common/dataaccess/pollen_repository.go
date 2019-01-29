@@ -87,6 +87,12 @@ type Scanner interface {
 	Scan(dest ...interface{}) error
 }
 
+func rowToLocation(row Scanner) (*Location, error) {
+	location := &Location{}
+	err := row.Scan(&location.Location, &location.Country, &location.City)
+	return location, err
+}
+
 func rowToPollenSample(row Scanner) (*PollenSample, error) {
 	pollenSample := &PollenSample{}
 	err := row.Scan(&pollenSample.Date,
@@ -133,6 +139,23 @@ func (repo *PollenRepository) InitDb() {
 	}
 
 	repo.PreparedStatements = make(map[string]*sql.Stmt)
+	repo.prepareStatement("FetchLocation", `
+		SELECT 
+			Location,
+			Country,
+			City
+		FROM Locations
+		WHERE 
+			Location = ?`)
+	repo.prepareStatement("SearchLocation", `
+		SELECT 
+			Location,
+			Country,
+			City
+		FROM Locations
+		WHERE 
+			Country = ? AND
+			City = ?`)
 	repo.prepareStatement("FetchPollen", `
 		SELECT 
 			Date,
@@ -178,6 +201,20 @@ func (repo *PollenRepository) prepareStatement(key string, statement string) {
 // Close closes connections to the database
 func (repo *PollenRepository) Close() {
 	repo.DB.Close()
+}
+
+// GetLocation fetch a location with an id
+func (repo *PollenRepository) GetLocation(location int) (*Location, error) {
+	row := repo.PreparedStatements["FetchLocation"].QueryRow(location)
+	return rowToLocation(row)
+}
+
+// SearchLocation find location with given country and city
+func (repo *PollenRepository) SearchLocation(country string, city string) (*Location, error) {
+	// TODO: allow to search by only city or country
+	// TODO: upper/lower case handling
+	row := repo.PreparedStatements["SearchLocation"].QueryRow(country, city)
+	return rowToLocation(row)
 }
 
 // UpsertPredictedPollenCount insert/updates the actual pollen count for a date
