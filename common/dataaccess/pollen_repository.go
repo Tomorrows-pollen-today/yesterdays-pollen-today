@@ -48,8 +48,30 @@ type PollenRepository struct {
 // PollenSample holds a pollencount for a given date
 type PollenSample struct {
 	PollenCount          int32
+	PollenType           PollenType
 	PredictedPollenCount float32
 	Date                 time.Time
+}
+
+// PollenType denotes a type of pollen
+type PollenType int
+
+const (
+	// PollenTypeGrass grass
+	PollenTypeGrass PollenType = 0
+	//PollenTypeBirch birch
+	PollenTypeBirch PollenType = 1
+)
+
+func (pollenType PollenType) String() string {
+	switch pollenType {
+	case PollenTypeGrass:
+		return "Grass"
+	case PollenTypeBirch:
+		return "Birch"
+	default:
+		return ""
+	}
 }
 
 // Scanner is an interface implemented by both sql.Row and sql.Rows.
