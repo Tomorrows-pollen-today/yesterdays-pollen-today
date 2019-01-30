@@ -205,6 +205,9 @@ func getTodaysPollen(city string, pollenType string) (int32, error) {
 				pollenKv := strings.Split(pollenDescription, ":")
 				if pollenKv[0] == pollenType {
 					value, err := strconv.ParseInt(pollenKv[1], 10, 32)
+					if pollenKv[1] == "-" {
+						return 0, nil
+					}
 					if err != nil {
 						log.Println(err, feed)
 						return 0, err
