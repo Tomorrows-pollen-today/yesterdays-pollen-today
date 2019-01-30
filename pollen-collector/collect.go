@@ -15,9 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mmcdole/gofeed"
-
 	"github.com/Tomorrows-pollen-today/yesterdays-pollen-today/common/dataaccess"
+	"github.com/mmcdole/gofeed"
 )
 
 var config *CollectorConfig
@@ -68,12 +67,16 @@ func main() {
 		dateForInsert := dataaccess.TimestampToDate(time.Now())
 		dateForInsert = dateForInsert.AddDate(0, 0, 1)
 
-		data := &dataaccess.PollenSample{
-			PredictedPollenCount: tomorrowsPollen,
-			Date:                 dateForInsert,
+		for _, pollenPrediction := range *tomorrowsPollen {
+			data := &dataaccess.PollenSample{
+				Date:                 dateForInsert,
+				PollenType:           pollenPrediction.PollenType,
+				Location:             dataaccess.Location{Location: 0},
+				PredictedPollenCount: pollenPrediction.PredictedPollenCount,
+			}
+			log.Println(data)
+			pollenRepo.UpsertPredictedPollenCount(data)
 		}
-		log.Println(data)
-		pollenRepo.UpsertPredictedPollenCount(data)
 	}()
 
 	waitGroup.Add(1)
@@ -111,7 +114,43 @@ type azurePollenResponse struct {
 	} `json:"Results"`
 }
 
-func getTomorrowsPollen() (float32, error) {
+// PollenPrediction holds a parsed result from the prediction service
+type PollenPrediction struct {
+	PollenType           dataaccess.PollenType
+	PredictedPollenCount float32
+}
+
+func parsePredictionValues(values [][]string) (*[]*PollenPrediction, error) {
+	result := make([]*PollenPrediction, len(values))
+	for i, value := range values {
+		var err error
+		result[i], err = parsePredictionValue(value)
+		if err != nil {
+			return &result, err
+		}
+	}
+	return &result, nil
+}
+
+func parsePredictionValue(value []string) (*PollenPrediction, error) {
+	prediction := &PollenPrediction{}
+	switch value[0] {
+	case "birch":
+		prediction.PollenType = dataaccess.PollenTypeBirch
+	case "grass":
+		prediction.PollenType = dataaccess.PollenTypeGrass
+	default:
+		return nil, fmt.Errorf("Unknown pollen type: %s", value[0])
+	}
+	parsedFloat, err := strconv.ParseFloat(value[1], 32)
+	if err != nil {
+		return nil, err
+	}
+	prediction.PredictedPollenCount = float32(parsedFloat)
+	return prediction, nil
+}
+
+func getTomorrowsPollen() (*[]*PollenPrediction, error) {
 	client := &http.Client{}
 	postBody, err := json.Marshal(map[string]interface{}{"GlobalParameters": map[string]string{
 		"Output_name": "",
@@ -131,7 +170,7 @@ func getTomorrowsPollen() (float32, error) {
 	tomorrowsPollenResponse, err := client.Do(request)
 	if err != nil {
 		log.Fatal(err, tomorrowsPollenResponse)
-		return 0, err
+		return nil, err
 	}
 
 	defer tomorrowsPollenResponse.Body.Close()
@@ -141,15 +180,10 @@ func getTomorrowsPollen() (float32, error) {
 	err = json.Unmarshal(data, &tomorrowsPollen)
 	if err != nil {
 		log.Println(err, tomorrowsPollenResponse, tomorrowsPollenResponse.Body)
-		return 0, err
+		return nil, err
 	}
-	tomorrowsPollenValue, err := strconv.ParseFloat(tomorrowsPollen.Results.PredictedPollenCount.Value.Values[0][0], 32)
-	if err != nil {
-		log.Println(err, tomorrowsPollenResponse)
-		return 0, err
-	}
-	return float32(tomorrowsPollenValue), nil
 
+	return parsePredictionValues(tomorrowsPollen.Results.PredictedPollenCount.Value.Values)
 }
 
 func getTodaysPollen(city string, pollenType string) (int32, error) {
