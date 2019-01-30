@@ -45,6 +45,20 @@ func main() {
 	http.ListenAndServe(":8001", router)
 }
 
+func writeObject(responseWriter http.ResponseWriter, output *json.Encoder, object interface{}, err error) {
+	if err != nil {
+		responseWriter.WriteHeader(http.StatusInternalServerError)
+		output.Encode(err)
+		return
+	}
+	if object == nil {
+		responseWriter.WriteHeader(http.StatusNotFound)
+		output.Encode("Object not found")
+		return
+	}
+	output.Encode(object)
+}
+
 func (context *httpContext) getPollen(responseWriter http.ResponseWriter, request *http.Request) {
 	output := json.NewEncoder(responseWriter)
 	vars := mux.Vars(request)
@@ -57,17 +71,7 @@ func (context *httpContext) getPollen(responseWriter http.ResponseWriter, reques
 	}
 
 	pollenData, err := context.Repo.GetPollen(dataaccess.TimestampToDate(date))
-	if err != nil {
-		responseWriter.WriteHeader(500)
-		output.Encode(err)
-		return
-	}
-	if pollenData == nil {
-		responseWriter.WriteHeader(404)
-		output.Encode("Date not found")
-		return
-	}
-	output.Encode(pollenData)
+	writeObject(responseWriter, output, pollenData, err)
 }
 
 func (context *httpContext) getPollenRange(responseWriter http.ResponseWriter, request *http.Request) {
@@ -86,10 +90,5 @@ func (context *httpContext) getPollenRange(responseWriter http.ResponseWriter, r
 	}
 
 	pollenData, err := context.Repo.GetPollenFromRange(dataaccess.TimestampToDate(from), dataaccess.TimestampToDate(to))
-	if err != nil {
-		output.Encode(err)
-		return
-	}
-
-	output.Encode(pollenData)
+	writeObject(responseWriter, output, pollenData, err)
 }
