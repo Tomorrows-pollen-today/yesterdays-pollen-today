@@ -39,8 +39,20 @@ func main() {
 
 	router := mux.NewRouter()
 	apiRouter := router.PathPrefix("/api").Subrouter()
+	// For temporary backwards compatibility. Is deprecated.
 	apiRouter.HandleFunc("/pollen/{date}", context.getPollen)
-	apiRouter.HandleFunc("/pollen", context.getPollenRange).Queries("from", "{from}", "to", "{to}")
+
+	apiRouter.HandleFunc("/pollen/{date}", context.getPollen).
+		Queries(
+			"pollentype", "{pollentype}",
+			"location", "{location}")
+
+	apiRouter.HandleFunc("/pollen", context.getPollenRange).
+		Queries(
+			"from", "{from}",
+			"to", "{to}",
+			"pollentype", "{pollentype}",
+			"location", "{location}")
 
 	http.ListenAndServe(":8001", router)
 }
