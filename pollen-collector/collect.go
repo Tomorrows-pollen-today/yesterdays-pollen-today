@@ -11,12 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/Tomorrows-pollen-today/yesterdays-pollen-today/common/dataaccess"
-	"github.com/mmcdole/gofeed"
 )
 
 type feedPollenType struct {
@@ -217,47 +215,6 @@ func getTomorrowsPollen() (*[]*PollenPrediction, error) {
 	}
 
 	return parsePredictionValues(tomorrowsPollen.Results.PredictedPollenCount.Value.Values)
-}
-
-func getTodaysPollenFeed() (*gofeed.Feed, error) {
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL("http://www.dmi.dk/vejr/services/pollen-rss/")
-
-	if err != nil {
-		log.Println(err, feed)
-		return nil, err
-	}
-
-	return feed, nil
-}
-
-func extractTodaysPollenFromFeed(feed *gofeed.Feed, city string, pollenType string) (int, error) {
-
-	for _, item := range feed.Items {
-		if strings.ToLower(item.Title) == city {
-			description := strings.ToLower(item.Description)
-			description = strings.Replace(description, "\n", "", -1)
-			description = strings.Replace(description, "\r", "", -1)
-			description = strings.Replace(description, " ", "", -1)
-			values := strings.Split(description, ";")
-			for _, pollenDescription := range values {
-				pollenKv := strings.Split(pollenDescription, ":")
-				if pollenKv[0] == pollenType {
-					value, err := strconv.ParseInt(pollenKv[1], 10, 32)
-					if pollenKv[1] == "-" {
-						return 0, nil
-					}
-					if err != nil {
-						log.Println(err, feed)
-						return 0, err
-					}
-					return int32(value), err
-				}
-			}
-		}
-	}
-
-	return 0, fmt.Errorf("Could not find pollen value for %v in %v", pollenType, city)
 }
 
 type azureHistoricalPollenResponse struct {
