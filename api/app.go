@@ -76,7 +76,19 @@ func (context *httpContext) getPollen(responseWriter http.ResponseWriter, reques
 	output := json.NewEncoder(responseWriter)
 	vars := mux.Vars(request)
 
-	date, err := time.Parse(time.RFC3339, vars["date"])
+	var date time.Time
+	if vars["date"] == "tomorrow" {
+		date = time.Now().AddDate(0, 0, 1)
+	} else {
+		var err error
+		date, err = time.Parse(time.RFC3339, vars["date"])
+		if err != nil {
+			responseWriter.WriteHeader(http.StatusBadRequest)
+			output.Encode(err)
+			return
+		}
+	}
+
 	// Parse pollen type
 	pollenType, err := strconv.Atoi(request.FormValue("pollentype"))
 	if err != nil {
