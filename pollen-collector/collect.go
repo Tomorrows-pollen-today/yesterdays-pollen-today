@@ -82,7 +82,13 @@ func main() {
 	waitGroup.Add(1)
 	go func() {
 		defer waitGroup.Done()
-		todaysPollen, err := getTodaysPollen("københavn", "græs")
+		feed, err := getTodaysPollenFeed()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		todaysPollen, err := extractTodaysPollenFromFeed(feed,
+			"københavn", "græs")
 		if err != nil {
 			log.Println(err)
 			return
@@ -186,14 +192,20 @@ func getTomorrowsPollen() (*[]*PollenPrediction, error) {
 	return parsePredictionValues(tomorrowsPollen.Results.PredictedPollenCount.Value.Values)
 }
 
-func getTodaysPollen(city string, pollenType string) (int32, error) {
+func getTodaysPollenFeed() (*gofeed.Feed, error) {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL("http://www.dmi.dk/vejr/services/pollen-rss/")
 
 	if err != nil {
 		log.Println(err, feed)
-		return 0, err
+		return nil, err
 	}
+
+	return feed, nil
+}
+
+func extractTodaysPollenFromFeed(feed *gofeed.Feed, city string, pollenType string) (int, error) {
+
 	for _, item := range feed.Items {
 		if strings.ToLower(item.Title) == city {
 			description := strings.ToLower(item.Description)
