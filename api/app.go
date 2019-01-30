@@ -40,6 +40,8 @@ func main() {
 
 	router := mux.NewRouter()
 	apiRouter := router.PathPrefix("/api").Subrouter()
+
+	apiRouter.HandleFunc("/pollentype/", context.getPollenTypes)
 	// For temporary backwards compatibility. Is deprecated.
 	apiRouter.HandleFunc("/pollen/{date}", context.getPollen)
 
@@ -70,6 +72,23 @@ func writeObject(responseWriter http.ResponseWriter, output *json.Encoder, objec
 		return
 	}
 	output.Encode(object)
+}
+
+func (context *httpContext) getPollenTypes(responseWriter http.ResponseWriter, request *http.Request) {
+	output := json.NewEncoder(responseWriter)
+
+	types := []dataaccess.PollenType{
+		dataaccess.PollenTypeGrass,
+		dataaccess.PollenTypeBirch,
+	}
+
+	result := make([][]interface{}, len(types))
+
+	for i, pollenType := range types {
+		result[i] = []interface{}{pollenType, pollenType.String()}
+	}
+
+	output.Encode(result)
 }
 
 func (context *httpContext) getPollen(responseWriter http.ResponseWriter, request *http.Request) {
