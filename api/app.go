@@ -42,6 +42,8 @@ func main() {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 
 	apiRouter.HandleFunc("/pollentype/", context.getPollenTypes)
+
+	apiRouter.HandleFunc("/location/{location}", context.getLocation)
 	// For temporary backwards compatibility. Is deprecated.
 	apiRouter.HandleFunc("/pollen/{date}", context.getPollen)
 
@@ -89,6 +91,22 @@ func (context *httpContext) getPollenTypes(responseWriter http.ResponseWriter, r
 	}
 
 	output.Encode(result)
+}
+
+func (context *httpContext) getLocation(responseWriter http.ResponseWriter, request *http.Request) {
+	output := json.NewEncoder(responseWriter)
+	vars := mux.Vars(request)
+
+	locationID, err := strconv.Atoi(vars["location"])
+	if err != nil {
+		responseWriter.WriteHeader(http.StatusBadRequest)
+		output.Encode(err)
+		return
+	}
+
+	location, err := context.Repo.GetLocation(locationID)
+
+	writeObject(responseWriter, output, location, err)
 }
 
 func (context *httpContext) getPollen(responseWriter http.ResponseWriter, request *http.Request) {
