@@ -44,6 +44,12 @@ func main() {
 	apiRouter.HandleFunc("/pollentype/", context.getPollenTypes)
 
 	apiRouter.HandleFunc("/location/{location}", context.getLocation)
+
+	apiRouter.HandleFunc("/location", context.searchLocation).
+		Queries(
+			"country", "{country}",
+			"city", "{city}")
+
 	// For temporary backwards compatibility. Is deprecated.
 	apiRouter.HandleFunc("/pollen/{date}", context.getPollen)
 
@@ -105,6 +111,21 @@ func (context *httpContext) getLocation(responseWriter http.ResponseWriter, requ
 	}
 
 	location, err := context.Repo.GetLocation(locationID)
+
+	writeObject(responseWriter, output, location, err)
+}
+
+func (context *httpContext) searchLocation(responseWriter http.ResponseWriter, request *http.Request) {
+	output := json.NewEncoder(responseWriter)
+
+	country := request.FormValue("country")
+	city := request.FormValue("city")
+	if country == "" && city == "" {
+		responseWriter.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	location, err := context.Repo.SearchLocation(country, city)
 
 	writeObject(responseWriter, output, location, err)
 }
