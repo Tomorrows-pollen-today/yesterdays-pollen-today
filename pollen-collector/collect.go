@@ -19,6 +19,13 @@ import (
 	"github.com/mmcdole/gofeed"
 )
 
+type feedPollenType struct {
+	FeedLocationName string
+	FeedPollenName   string
+	PollenType       dataaccess.PollenType
+	Location         int
+}
+
 var config *CollectorConfig
 
 func main() {
@@ -87,21 +94,41 @@ func main() {
 			log.Println(err)
 			return
 		}
-		todaysPollen, err := extractTodaysPollenFromFeed(feed,
-			"københavn", "græs")
-		if err != nil {
-			log.Println(err)
-			return
+
+		pollenTypesToExtract := []feedPollenType{
+			feedPollenType{
+				FeedLocationName: "københavn",
+				FeedPollenName:   "græs",
+				PollenType:       dataaccess.PollenTypeGrass,
+				Location:         0,
+			},
+			feedPollenType{
+				FeedLocationName: "københavn",
+				FeedPollenName:   "birk",
+				PollenType:       dataaccess.PollenTypeBirch,
+				Location:         0,
+			},
 		}
 
-		dateForInsert := dataaccess.TimestampToDate(time.Now())
+		for _, feedPollenToExtract := range pollenTypesToExtract {
+			todaysPollen, err := extractTodaysPollenFromFeed(feed,
+				feedPollenToExtract.FeedLocationName, feedPollenToExtract.FeedPollenName)
+			if err != nil {
+				log.Println(err)
+				return
+			}
 
-		data := &dataaccess.PollenSample{
-			PollenCount: todaysPollen,
-			Date:        dateForInsert,
+			dateForInsert := dataaccess.TimestampToDate(time.Now())
+
+			data := &dataaccess.PollenSample{
+				Date:        dateForInsert,
+				PollenType:  feedPollenToExtract.PollenType,
+				Location:    dataaccess.Location{Location: feedPollenToExtract.Location},
+				PollenCount: todaysPollen,
+			}
+			log.Println(data)
+			pollenRepo.UpsertPollenCount(data)
 		}
-		log.Println(data)
-		pollenRepo.UpsertPollenCount(data)
 	}()
 
 	waitGroup.Wait()
