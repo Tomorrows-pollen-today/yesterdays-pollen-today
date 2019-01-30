@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/Tomorrows-pollen-today/yesterdays-pollen-today/common/dataaccess"
@@ -76,13 +77,26 @@ func (context *httpContext) getPollen(responseWriter http.ResponseWriter, reques
 	vars := mux.Vars(request)
 
 	date, err := time.Parse(time.RFC3339, vars["date"])
+	// Parse pollen type
+	pollenType, err := strconv.Atoi(request.FormValue("pollentype"))
 	if err != nil {
-		responseWriter.WriteHeader(400)
-		output.Encode(err)
-		return
+		// TODO: return error when obsolete is removed entirely
+		responseWriter.Header().Set("X-Obsolete-pollentype", "Calling this endpoint without declaring pollentype in query is obsolete")
+		pollenType = int(dataaccess.PollenTypeGrass)
 	}
 
-	pollenData, err := context.Repo.GetPollen(dataaccess.TimestampToDate(date))
+	// Parse location
+	location, err := strconv.Atoi(request.FormValue("location"))
+	if err != nil {
+		// TODO: return error when obsolete is removed entirely
+		responseWriter.Header().Set("X-Obsolete-location", "Calling this endpoint without declaring location in query is obsolete")
+		location = 0
+	}
+
+	pollenData, err := context.Repo.GetPollen(
+		dataaccess.TimestampToDate(date),
+		dataaccess.PollenType(pollenType),
+		location)
 	writeObject(responseWriter, output, pollenData, err)
 }
 
@@ -101,6 +115,26 @@ func (context *httpContext) getPollenRange(responseWriter http.ResponseWriter, r
 		return
 	}
 
-	pollenData, err := context.Repo.GetPollenFromRange(dataaccess.TimestampToDate(from), dataaccess.TimestampToDate(to))
+	// Parse pollen type
+	pollenType, err := strconv.Atoi(request.FormValue("pollentype"))
+	if err != nil {
+		responseWriter.WriteHeader(http.StatusBadRequest)
+		output.Encode(err)
+		return
+	}
+
+	// Parse location
+	location, err := strconv.Atoi(request.FormValue("location"))
+	if err != nil {
+		responseWriter.WriteHeader(http.StatusBadRequest)
+		output.Encode(err)
+		return
+	}
+
+	pollenData, err := context.Repo.GetPollenFromRange(
+		dataaccess.TimestampToDate(from),
+		dataaccess.TimestampToDate(to),
+		dataaccess.PollenType(pollenType),
+		location)
 	writeObject(responseWriter, output, pollenData, err)
 }
