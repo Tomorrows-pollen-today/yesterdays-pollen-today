@@ -68,6 +68,7 @@ func main() {
 	http.ListenAndServe(":8001", router)
 }
 
+// Write an object to the output stream as a JSON blob. Handles the most common error codes as well.
 func writeObject(responseWriter http.ResponseWriter, output *json.Encoder, object interface{}, err error) {
 	if err != nil {
 		responseWriter.WriteHeader(http.StatusInternalServerError)
@@ -82,6 +83,7 @@ func writeObject(responseWriter http.ResponseWriter, output *json.Encoder, objec
 	output.Encode(object)
 }
 
+// Get a list of the current pollen types handled by the API.
 func (context *httpContext) getPollenTypes(responseWriter http.ResponseWriter, request *http.Request) {
 	output := json.NewEncoder(responseWriter)
 
@@ -99,6 +101,7 @@ func (context *httpContext) getPollenTypes(responseWriter http.ResponseWriter, r
 	output.Encode(result)
 }
 
+// Get a location by an id.
 func (context *httpContext) getLocation(responseWriter http.ResponseWriter, request *http.Request) {
 	output := json.NewEncoder(responseWriter)
 	vars := mux.Vars(request)
@@ -115,6 +118,7 @@ func (context *httpContext) getLocation(responseWriter http.ResponseWriter, requ
 	writeObject(responseWriter, output, location, err)
 }
 
+// Find a location by either city of country. Useful to get the location id for use with getPollen.
 func (context *httpContext) searchLocation(responseWriter http.ResponseWriter, request *http.Request) {
 	output := json.NewEncoder(responseWriter)
 
@@ -130,6 +134,11 @@ func (context *httpContext) searchLocation(responseWriter http.ResponseWriter, r
 	writeObject(responseWriter, output, location, err)
 }
 
+// Get the pollen count as well as the predicted pollen count for a given date, pollen type and location.
+// If the date is the string "tomorrow", the correct date for tomorrow will be used.
+// Pollen type and location can be omitted for now, and will simply use grass pollen for copenhagen
+// for backwards compatibility. It is deprecated and will be removed once tomorrowspollen.today is
+// updated to use the new parameters.
 func (context *httpContext) getPollen(responseWriter http.ResponseWriter, request *http.Request) {
 	output := json.NewEncoder(responseWriter)
 	vars := mux.Vars(request)
