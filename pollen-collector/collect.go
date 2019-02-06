@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -73,7 +75,6 @@ func main() {
 				Location:             dataaccess.Location{Location: 0},
 				PredictedPollenCount: pollenPrediction.PredictedPollenCount,
 			}
-			log.Println(data)
 			pollenRepo.UpsertPredictedPollenCount(data)
 		}
 	}()
@@ -81,45 +82,43 @@ func main() {
 	waitGroup.Add(1)
 	go func() {
 		defer waitGroup.Done()
-		feed, err := getTodaysPollenFeed()
+		pollenTypes, err := pollenRepo.GetPollenTypes()
 		if err != nil {
 			log.Println(err)
 			return
 		}
-
-		pollenTypesToExtract := []feedPollenType{
-			feedPollenType{
-				FeedLocationName: "københavn",
-				FeedPollenName:   "græs",
-				PollenType:       dataaccess.PollenTypeGrass,
-				Location:         0,
-			},
-			feedPollenType{
-				FeedLocationName: "københavn",
-				FeedPollenName:   "birk",
-				PollenType:       dataaccess.PollenTypeBirch,
-				Location:         0,
-			},
+		locations, err := pollenRepo.GetAllLocations()
+		if err != nil {
+			log.Println(err)
+			return
 		}
+		for _, pollenType := range pollenTypes {
+			for _, location := range locations {
+				pollenData, err := GetPollenData(pollenType, location)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 
-		for _, feedPollenToExtract := range pollenTypesToExtract {
-			todaysPollen, err := extractTodaysPollenFromFeed(feed,
-				feedPollenToExtract.FeedLocationName, feedPollenToExtract.FeedPollenName)
-			if err != nil {
-				log.Println(err)
-				return
+				dateForInsert := dataaccess.TimestampToDate(time.Now())
+
+				newestPollenData := pollenData[len(pollenData)-1]
+				dist := dateForInsert.Sub(newestPollenData.Date)
+				log.Printf("%s %s %s", newestPollenData.Date, dateForInsert, dist)
+				if math.Abs(dist.Hours()) > 24 {
+					err := fmt.Errorf("Newest pollen date from astma-allergi is not today newest:%v today:%v Dist:%v", newestPollenData.Date, dateForInsert, dist)
+					log.Println(err)
+					return
+				}
+
+				data := &dataaccess.PollenSample{
+					Date:        dateForInsert,
+					PollenType:  pollenType,
+					Location:    dataaccess.Location{Location: location.Location},
+					PollenCount: newestPollenData.PollenCount,
+				}
+				pollenRepo.UpsertPollenCount(data)
 			}
-
-			dateForInsert := dataaccess.TimestampToDate(time.Now())
-
-			data := &dataaccess.PollenSample{
-				Date:        dateForInsert,
-				PollenType:  feedPollenToExtract.PollenType,
-				Location:    dataaccess.Location{Location: feedPollenToExtract.Location},
-				PollenCount: todaysPollen,
-			}
-			log.Println(data)
-			pollenRepo.UpsertPollenCount(data)
 		}
 	}()
 
