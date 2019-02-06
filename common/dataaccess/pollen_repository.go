@@ -110,6 +110,12 @@ func (repo *PollenRepository) InitDb() {
 		FROM Locations
 		WHERE 
 			Location = ?`)
+	repo.prepareStatement("FetchAllLocations", `
+		SELECT 
+			Location,
+			Country,
+			City
+		FROM Locations`)
 	repo.prepareStatement("SearchLocation", `
 		SELECT 
 			Location,
@@ -178,6 +184,28 @@ func (repo *PollenRepository) SearchLocation(country string, city string) (*Loca
 	// TODO: upper/lower case handling
 	row := repo.PreparedStatements["SearchLocation"].QueryRow(country, city)
 	return rowToLocation(row)
+}
+
+// GetAllLocations fetch all locations
+func (repo *PollenRepository) GetAllLocations() ([]*Location, error) {
+	var results []*Location
+	rows, err := repo.PreparedStatements["FetchAllLocations"].Query()
+	defer rows.Close()
+	if err != nil {
+		log.Println(fmt.Errorf("failed to get data: %v", err))
+	}
+	for rows.Next() {
+		location, err := rowToLocation(rows)
+		if err != nil {
+			log.Println(fmt.Errorf("failed to get data: %v", err))
+		}
+		results = append(results, location)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Println(fmt.Errorf("failed to get data: %v", err))
+	}
+	return results, nil
 }
 
 // GetPollen fetch pollen data for a single date
