@@ -87,9 +87,11 @@ func writeObject(responseWriter http.ResponseWriter, output *json.Encoder, objec
 func (context *httpContext) getPollenTypes(responseWriter http.ResponseWriter, request *http.Request) {
 	output := json.NewEncoder(responseWriter)
 
-	types := []dataaccess.PollenType{
-		dataaccess.PollenTypeGrass,
-		dataaccess.PollenTypeBirch,
+	types, err := context.Repo.GetPollenTypes()
+	if err != nil {
+		responseWriter.WriteHeader(http.StatusInternalServerError)
+		output.Encode(err)
+		return
 	}
 
 	result := make([][]interface{}, len(types))

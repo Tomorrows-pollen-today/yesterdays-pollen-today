@@ -252,6 +252,14 @@ func (repo *PollenRepository) UpsertPollenSample(pollen *PollenSample) error {
 	return err
 }
 
+// GetPollenTypes returns an array of all handled pollen types
+func (repo *PollenRepository) GetPollenTypes() ([]PollenType, error) {
+	return []PollenType{
+		PollenTypeGrass,
+		PollenTypeBirch,
+	}, nil
+}
+
 // TimestampToDate converts a timestamp to a date used in the repository
 func TimestampToDate(timestamp time.Time) time.Time {
 	return time.Date(timestamp.Year(), timestamp.Month(), timestamp.Day(), 0, 0, 0, 0, time.UTC)
