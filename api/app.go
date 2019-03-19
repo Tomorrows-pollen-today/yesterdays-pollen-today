@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,6 +35,15 @@ func main() {
 	executable, _ := os.Executable()
 	exPath := filepath.Dir(executable)
 	os.Chdir(exPath)
+
+	logfile, err := os.OpenFile("pollen-api.log", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logfile.Close()
+
+	log.SetOutput(logfile)
+	log.Printf("Starting api at %v", time.Now())
 
 	repo, err := dataaccess.GetConnection()
 	if err != nil {
@@ -78,6 +88,7 @@ func main() {
 func writeObject(responseWriter http.ResponseWriter, output *json.Encoder, object interface{}, err error) {
 	if err != nil {
 		responseWriter.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
 		output.Encode(err)
 		return
 	}
