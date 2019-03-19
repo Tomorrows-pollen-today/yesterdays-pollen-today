@@ -19,6 +19,12 @@ type PollenSampleDto struct {
 	Date                 time.Time `json:"date"`
 }
 
+// PollenTypeDto has a pollen id and name
+type PollenTypeDto struct {
+	PollenType dataaccess.PollenType `json:"pollenid"`
+	PollenName string                `json:"name"`
+}
+
 type httpContext struct {
 	Repo *dataaccess.PollenRepository
 }
@@ -94,10 +100,13 @@ func (context *httpContext) getPollenTypes(responseWriter http.ResponseWriter, r
 		return
 	}
 
-	result := make([][]interface{}, len(types))
+	result := make([]PollenTypeDto, len(types))
 
 	for i, pollenType := range types {
-		result[i] = []interface{}{pollenType, pollenType.String()}
+		result[i] = PollenTypeDto{
+			PollenType: pollenType,
+			PollenName: pollenType.String(),
+		}
 	}
 
 	output.Encode(result)
