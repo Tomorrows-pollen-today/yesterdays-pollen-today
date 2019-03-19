@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -99,25 +97,21 @@ func main() {
 					log.Println(err)
 					return
 				}
+				log.Printf("Found data for %v days", len(pollenData))
 
-				dateForInsert := dataaccess.TimestampToDate(time.Now())
+				// Update the last 14 days of data
+				for i := len(pollenData) - 15; i < len(pollenData); i++ {
+					pollenData := pollenData[i]
+					log.Printf("Updating %v", pollenData.Date)
 
-				newestPollenData := pollenData[len(pollenData)-1]
-				dist := dateForInsert.Sub(newestPollenData.Date)
-				log.Printf("%s %s %s", newestPollenData.Date, dateForInsert, dist)
-				if math.Abs(dist.Hours()) > 24 {
-					err := fmt.Errorf("Newest pollen date from astma-allergi is not today newest:%v today:%v Dist:%v", newestPollenData.Date, dateForInsert, dist)
-					log.Println(err)
-					return
+					data := &dataaccess.PollenSample{
+						Date:        dataaccess.TimestampToDate(pollenData.Date),
+						PollenType:  pollenType,
+						Location:    dataaccess.Location{Location: location.Location},
+						PollenCount: pollenData.PollenCount,
+					}
+					pollenRepo.UpsertPollenCount(data)
 				}
-
-				data := &dataaccess.PollenSample{
-					Date:        dateForInsert,
-					PollenType:  pollenType,
-					Location:    dataaccess.Location{Location: location.Location},
-					PollenCount: newestPollenData.PollenCount,
-				}
-				pollenRepo.UpsertPollenCount(data)
 			}
 		}
 	}()
