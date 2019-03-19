@@ -16,14 +16,14 @@ import (
 
 // PollenSampleDto holds a pollencount for a given date
 type PollenSampleDto struct {
-	PollenCount          int       `json:"pollencount"`
-	PredictedPollenCount int       `json:"predictedpollencount"`
+	PollenCount          int       `json:"pollenCount"`
+	PredictedPollenCount int       `json:"predictedPollenCount"`
 	Date                 time.Time `json:"date"`
 }
 
 // PollenTypeDto has a pollen id and name
 type PollenTypeDto struct {
-	PollenType dataaccess.PollenType `json:"pollenid"`
+	PollenType dataaccess.PollenType `json:"pollenId"`
 	PollenName string                `json:"name"`
 }
 
