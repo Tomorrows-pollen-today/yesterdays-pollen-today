@@ -207,13 +207,15 @@ func (repo *PollenRepository) GetAllLocations() ([]*Location, error) {
 	defer rows.Close()
 	if err != nil {
 		log.Println(fmt.Errorf("failed to get data: %v", err))
+		return nil, err
 	}
 	for rows.Next() {
 		location, err := rowToLocation(rows)
 		if err != nil {
 			log.Println(fmt.Errorf("failed to get data: %v", err))
+		} else {
+			results = append(results, location)
 		}
-		results = append(results, location)
 	}
 	err = rows.Err()
 	if err != nil {
@@ -235,13 +237,15 @@ func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time, p
 	defer rows.Close()
 	if err != nil {
 		log.Println(fmt.Errorf("failed to get data: %v", err))
+		return nil, err
 	}
 	for rows.Next() {
 		pollenSample, err := rowToPollenSample(rows)
 		if err != nil {
 			log.Println(fmt.Errorf("failed to get data: %v", err))
+		} else {
+			results = append(results, pollenSample)
 		}
-		results = append(results, pollenSample)
 	}
 	err = rows.Err()
 	if err != nil {
