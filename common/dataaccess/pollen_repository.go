@@ -224,14 +224,14 @@ func (repo *PollenRepository) GetAllLocations() ([]*Location, error) {
 
 // GetPollen fetch pollen data for a single date
 func (repo *PollenRepository) GetPollen(date time.Time, pollenType PollenType, location int) (*PollenSample, error) {
-	row := repo.PreparedStatements["FetchPollen"].QueryRow(date, pollenType, location)
+	row := repo.PreparedStatements["FetchPollen"].QueryRow(date, int(pollenType), location)
 	return rowToPollenSample(row)
 }
 
 // GetPollenFromRange fetch pollen data for a range of dates
 func (repo *PollenRepository) GetPollenFromRange(from time.Time, to time.Time, pollenType PollenType, location int) ([]*PollenSample, error) {
 	var results []*PollenSample
-	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to, pollenType, location)
+	rows, err := repo.PreparedStatements["FetchPollenRange"].Query(from, to, int(pollenType), location)
 	defer rows.Close()
 	if err != nil {
 		log.Println(fmt.Errorf("failed to get data: %v", err))
@@ -259,7 +259,7 @@ func (repo *PollenRepository) UpsertPredictedPollenCount(pollen *PollenSample) e
 	_, err = repo.DB.Exec(`
 		MERGE INTO PollenArchive (Date, PollenType, Location, PollenCount, PredictedPollenCount) 
 		VALUES (?, ?, ?, ?, ?)`,
-		pollen.Date, pollen.PollenType, pollen.Location.Location, existing.PollenCount, pollen.PredictedPollenCount)
+		pollen.Date, int(pollen.PollenType), pollen.Location.Location, existing.PollenCount, pollen.PredictedPollenCount)
 	if err != nil {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
 	}
@@ -275,7 +275,7 @@ func (repo *PollenRepository) UpsertPollenCount(pollen *PollenSample) error {
 	_, err = repo.DB.Exec(`
 		MERGE INTO PollenArchive (Date, PollenType, Location, PollenCount, PredictedPollenCount) 
 		VALUES (?, ?, ?, ?, ?)`,
-		pollen.Date, pollen.PollenType, pollen.Location.Location, pollen.PollenCount, existing.PredictedPollenCount)
+		pollen.Date, int(pollen.PollenType), pollen.Location.Location, pollen.PollenCount, existing.PredictedPollenCount)
 	if err != nil {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
 	}
@@ -287,7 +287,7 @@ func (repo *PollenRepository) UpsertPollenSample(pollen *PollenSample) error {
 	_, err := repo.DB.Exec(`
 		MERGE INTO PollenArchive (Date, PollenType, Location, PollenCount, PredictedPollenCount) 
 		(SELECT ?, ?, ?, ?, ?)`,
-		pollen.Date, pollen.PollenType, pollen.Location.Location, pollen.PollenCount, pollen.PredictedPollenCount)
+		pollen.Date, int(pollen.PollenType), pollen.Location.Location, pollen.PollenCount, pollen.PredictedPollenCount)
 	if err != nil {
 		log.Println(fmt.Errorf("failed insert data: %v", err))
 	}
