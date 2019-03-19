@@ -57,14 +57,28 @@ func rowToLocation(row Scanner) (*Location, error) {
 }
 
 func rowToPollenSample(row Scanner) (*PollenSample, error) {
-	pollenSample := &PollenSample{}
-	err := row.Scan(&pollenSample.Date,
-		&pollenSample.PollenType,
-		&pollenSample.Location.Location,
-		&pollenSample.Location.Country,
-		&pollenSample.Location.City,
-		&pollenSample.PollenCount,
-		&pollenSample.PredictedPollenCount)
+	pollenSampleSQL := &pollenSampleSQL{}
+	err := row.Scan(&pollenSampleSQL.Date,
+		&pollenSampleSQL.PollenType,
+		&pollenSampleSQL.Location.Location,
+		&pollenSampleSQL.Location.Country,
+		&pollenSampleSQL.Location.City,
+		&pollenSampleSQL.PollenCount,
+		&pollenSampleSQL.PredictedPollenCount)
+	if err != nil {
+		return nil, err
+	}
+	pollenSample := &PollenSample{
+		Date:       pollenSampleSQL.Date,
+		PollenType: pollenSampleSQL.PollenType,
+		Location:   pollenSampleSQL.Location,
+	}
+	if pollenSampleSQL.PollenCount.Valid {
+		pollenSample.PollenCount = int(pollenSampleSQL.PollenCount.Int64)
+	}
+	if pollenSampleSQL.PredictedPollenCount.Valid {
+		pollenSample.PredictedPollenCount = float32(pollenSampleSQL.PredictedPollenCount.Float64)
+	}
 	return pollenSample, err
 }
 

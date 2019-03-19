@@ -1,12 +1,24 @@
 package dataaccess
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 // PollenSample holds a pollencount for a given date
 type PollenSample struct {
 	PollenType           PollenType
 	PollenCount          int
 	PredictedPollenCount float32
+	Date                 time.Time
+	Location             Location
+}
+
+// pollenSampleSQL is used to get data from SQL. It is then converted to a PollenSample
+type pollenSampleSQL struct {
+	PollenType           PollenType
+	PollenCount          sql.NullInt64
+	PredictedPollenCount sql.NullFloat64
 	Date                 time.Time
 	Location             Location
 }
