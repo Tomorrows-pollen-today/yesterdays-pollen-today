@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Tomorrows-pollen-today/yesterdays-pollen-today/common/dataaccess"
@@ -57,7 +58,7 @@ func main() {
 	router := mux.NewRouter()
 	apiRouter := router.PathPrefix("/api").Subrouter()
 
-	apiRouter.HandleFunc("/pollentype/", context.getPollenTypes)
+	apiRouter.HandleFunc("/pollentype", context.getPollenTypes)
 
 	apiRouter.HandleFunc("/location/{location}", context.getLocation)
 
@@ -81,7 +82,14 @@ func main() {
 			"pollentype", "{pollentype}",
 			"location", "{location}")
 
-	http.ListenAndServe(":8001", router)
+	http.ListenAndServe(":8001", trailingSlashMiddleware(router))
+}
+
+func trailingSlashMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = strings.TrimSuffix(r.URL.Path, "/")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Write an object to the output stream as a JSON blob. Handles the most common error codes as well.
